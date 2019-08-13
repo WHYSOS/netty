@@ -52,7 +52,7 @@ public class NioWebSocketHandler extends SimpleChannelInboundHandler<Object> {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         //断开连接
-        //log.info("客户端断开连接："+ctx.channel());
+        log.info("客户端断开连接");
         ChannelSupervise.removeChannel(ctx.channel());
     }
 
