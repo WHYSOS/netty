@@ -32,7 +32,7 @@ public class NioWebSocketHandler extends SimpleChannelInboundHandler<Object> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-        log.info("收到消息："+msg);
+        log.info("收到消息");
         if (msg instanceof FullHttpRequest){
             //以http请求形式接入，但是走的是websocket
             handleHttpRequest(ctx, (FullHttpRequest) msg);
@@ -45,14 +45,14 @@ public class NioWebSocketHandler extends SimpleChannelInboundHandler<Object> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         //添加连接
-        log.info("客户端加入连接："+ctx.channel());
+        log.info("客户端加入连接");
         ChannelSupervise.addChannel(ctx.channel());
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         //断开连接
-        log.info("客户端断开连接："+ctx.channel());
+        //log.info("客户端断开连接："+ctx.channel());
         ChannelSupervise.removeChannel(ctx.channel());
     }
 
@@ -86,7 +86,7 @@ public class NioWebSocketHandler extends SimpleChannelInboundHandler<Object> {
         // 群发
         ChannelSupervise.send2All(tws);
         // 返回【谁发的发给谁】
-        // ctx.channel().writeAndFlush(tws);
+        ctx.channel().writeAndFlush(tws);
     }
     /**
      * 唯一的一次http请求，用于创建websocket
