@@ -1,5 +1,7 @@
 package com.dt.handler;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
 import com.dt.channel.ChannelSupervise;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -16,6 +18,7 @@ import io.netty.util.CharsetUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
+import java.util.Map;
 
 import static io.netty.handler.codec.http.HttpUtil.isKeepAlive;
 
@@ -33,12 +36,31 @@ public class NioWebSocketHandler extends SimpleChannelInboundHandler<Object> {
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
         log.info("收到消息");
-        if (msg instanceof FullHttpRequest){
+        /*if (msg instanceof FullHttpRequest){
             //以http请求形式接入，但是走的是websocket
             handleHttpRequest(ctx, (FullHttpRequest) msg);
         }else if (msg instanceof WebSocketFrame){
             //处理websocket客户端的消息
             handlerWebSocketFrame(ctx, (WebSocketFrame) msg);
+        }*/
+        //文本消息用文本处理
+        if (msg instanceof TextWebSocketFrame){
+            System.out.println("TextWebSocketFrame"+msg);
+            textdoMessage(ctx,(TextWebSocketFrame)msg);
+        }
+        //图片消息用图片处理
+        else if (msg instanceof WebSocketFrame){
+            System.out.println("WebSocketFrame"+msg);
+            webdoMessage(ctx,(WebSocketFrame)msg);
+        }
+        //http消息用http请求处理
+        else if (msg instanceof FullHttpRequest){
+            System.out.println("FullHttpRequest"+msg);
+            handleHttpRequest(ctx,(FullHttpRequest)msg);
+        }
+        else if (msg instanceof CloseWebSocketFrame){
+            System.out.println("CloseWebSocketFrame"+msg);
+            handlerWebSocketFrame(ctx,(CloseWebSocketFrame)msg);
         }
     }
 
@@ -60,33 +82,10 @@ public class NioWebSocketHandler extends SimpleChannelInboundHandler<Object> {
     public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
         ctx.flush();
     }
-    private void handlerWebSocketFrame(ChannelHandlerContext ctx, WebSocketFrame frame){
-        // 判断是否关闭链路的指令
-        if (frame instanceof CloseWebSocketFrame) {
-            handshaker.close(ctx.channel(), (CloseWebSocketFrame) frame.retain());
-            return;
-        }
-        // 判断是否ping消息
-        if (frame instanceof PingWebSocketFrame) {
-            ctx.channel().write(
-                    new PongWebSocketFrame(frame.content().retain()));
-            return;
-        }
-        // 本例程仅支持文本消息，不支持二进制消息
-        if (!(frame instanceof TextWebSocketFrame)) {
-            log.info("本例程仅支持文本消息，不支持二进制消息");
-            throw new UnsupportedOperationException(String.format(
-                    "%s frame types not supported", frame.getClass().getName()));
-        }
-        // 返回应答消息
-        String request = ((TextWebSocketFrame) frame).text();
-        log.info("服务端收到：" + request);
-        TextWebSocketFrame tws = new TextWebSocketFrame(new Date().toString()
-                + ctx.channel().id() + "：" + request);
-        // 群发
-        ChannelSupervise.send2All(tws);
-        // 返回【谁发的发给谁】
-        ctx.channel().writeAndFlush(tws);
+
+    private void handlerWebSocketFrame(ChannelHandlerContext ctx, CloseWebSocketFrame frame){
+        //关闭链路的指令
+        handshaker.close(ctx.channel(),frame.retain());
     }
     /**
      * 唯一的一次http请求，用于创建websocket
@@ -128,5 +127,25 @@ public class NioWebSocketHandler extends SimpleChannelInboundHandler<Object> {
         if (!isKeepAlive(req) || res.status().code() != 200) {
             f.addListener(ChannelFutureListener.CLOSE);
         }
+    }
+
+    protected void webdoMessage(ChannelHandlerContext ctx, WebSocketFrame msg) {
+
+    }
+
+    protected void textdoMessage(ChannelHandlerContext ctx, TextWebSocketFrame frame) {
+        // 接收到的消息
+        String request = frame.text();
+        Map<String,String> requestMap =  JSON.parseObject(request, new TypeReference<Map<String,String>>() {});
+        String token = requestMap.get("token");
+        String msg = requestMap.get("msg");
+        String type = requestMap.get("type");
+        //log.info("服务端收到：" + request);
+        TextWebSocketFrame tws = new TextWebSocketFrame(new Date().toString()
+                + ctx.channel().id() + "：" + request);
+        // 群发
+        ChannelSupervise.send2All(tws);
+        // 返回【谁发的发给谁】
+        //ctx.channel().writeAndFlush(tws);
     }
 }
