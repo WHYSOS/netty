@@ -36,13 +36,7 @@ public class NioWebSocketHandler extends SimpleChannelInboundHandler<Object> {
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
         log.info("收到消息");
-        /*if (msg instanceof FullHttpRequest){
-            //以http请求形式接入，但是走的是websocket
-            handleHttpRequest(ctx, (FullHttpRequest) msg);
-        }else if (msg instanceof WebSocketFrame){
-            //处理websocket客户端的消息
-            handlerWebSocketFrame(ctx, (WebSocketFrame) msg);
-        }*/
+
         //文本消息用文本处理
         if (msg instanceof TextWebSocketFrame){
             System.out.println("TextWebSocketFrame"+msg);
@@ -53,7 +47,7 @@ public class NioWebSocketHandler extends SimpleChannelInboundHandler<Object> {
             System.out.println("WebSocketFrame"+msg);
             webdoMessage(ctx,(WebSocketFrame)msg);
         }
-        //http消息用http请求处理
+        //http消息用http请求处理，一般第一次创建websocket会发起http请求
         else if (msg instanceof FullHttpRequest){
             System.out.println("FullHttpRequest"+msg);
             handleHttpRequest(ctx,(FullHttpRequest)msg);
@@ -83,10 +77,7 @@ public class NioWebSocketHandler extends SimpleChannelInboundHandler<Object> {
         ctx.flush();
     }
 
-    private void handlerWebSocketFrame(ChannelHandlerContext ctx, CloseWebSocketFrame frame){
-        //关闭链路的指令
-        handshaker.close(ctx.channel(),frame.retain());
-    }
+
     /**
      * 唯一的一次http请求，用于创建websocket
      * */
@@ -129,6 +120,7 @@ public class NioWebSocketHandler extends SimpleChannelInboundHandler<Object> {
         }
     }
 
+    //处理二进制信息，例如图片
     protected void webdoMessage(ChannelHandlerContext ctx, WebSocketFrame msg) {
 
     }
@@ -137,7 +129,7 @@ public class NioWebSocketHandler extends SimpleChannelInboundHandler<Object> {
         // 接收到的消息
         String request = frame.text();
         Map<String,String> requestMap =  JSON.parseObject(request, new TypeReference<Map<String,String>>() {});
-        String token = requestMap.get("token");
+        String userId = requestMap.get("userId");
         String msg = requestMap.get("msg");
         String type = requestMap.get("type");
         //log.info("服务端收到：" + request);
@@ -147,5 +139,10 @@ public class NioWebSocketHandler extends SimpleChannelInboundHandler<Object> {
         ChannelSupervise.send2All(tws);
         // 返回【谁发的发给谁】
         //ctx.channel().writeAndFlush(tws);
+    }
+
+    private void handlerWebSocketFrame(ChannelHandlerContext ctx, CloseWebSocketFrame frame){
+        //关闭链路的指令
+        handshaker.close(ctx.channel(),frame.retain());
     }
 }

@@ -66,6 +66,7 @@ public class NettyServer {
                         ch.pipeline().addLast("http-codec",new HttpServerCodec());//设置解码器
                         ch.pipeline().addLast("aggregator",new HttpObjectAggregator(65536));//聚合器，使用websocket会用到
                         ch.pipeline().addLast("http-chunked",new ChunkedWriteHandler());//用于大数据的分区传输
+                        ch.pipeline().addLast("login",new LoggingHandler());
                         ch.pipeline().addLast("handler",new NioWebSocketHandler());//自定义的业务handler
                     }
                 });
