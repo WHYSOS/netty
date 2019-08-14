@@ -3,12 +3,11 @@ package com.dt.handler;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.dt.channel.ChannelSupervise;
+import com.dt.session.Session;
+import com.dt.util.SessionUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.*;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -132,11 +131,13 @@ public class NioWebSocketHandler extends SimpleChannelInboundHandler<Object> {
         String userId = requestMap.get("userId");
         String msg = requestMap.get("msg");
         String type = requestMap.get("type");
-        //log.info("服务端收到：" + request);
-        TextWebSocketFrame tws = new TextWebSocketFrame(new Date().toString()
-                + ctx.channel().id() + "：" + request);
+        TextWebSocketFrame tws = new TextWebSocketFrame(new Date().toString()+"-"+userId+ ":" + msg);
         // 群发
-        ChannelSupervise.send2All(tws);
+        //ChannelSupervise.send2All(tws);
+        if ("sendOther".equals(type)){
+            Channel channel = SessionUtil.getChannel(requestMap.get("receiverId"));
+            channel.writeAndFlush(tws);
+        }
         // 返回【谁发的发给谁】
         //ctx.channel().writeAndFlush(tws);
     }
