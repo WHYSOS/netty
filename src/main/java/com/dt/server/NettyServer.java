@@ -1,5 +1,6 @@
 package com.dt.server;
 
+import com.dt.handler.LoginHandler;
 import com.dt.handler.NioWebSocketHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
@@ -61,12 +62,11 @@ public class NettyServer {
                 .channel(NioServerSocketChannel.class)
                 .childHandler(new ChannelInitializer<NioSocketChannel>() {
                     protected void initChannel(NioSocketChannel ch) {
-//                        ch.pipeline().addLast(new FirstServerHandler());
                         ch.pipeline().addLast("logging",new LoggingHandler("DEBUG"));//设置log监听器，并且日志级别为debug，方便观察运行流程
                         ch.pipeline().addLast("http-codec",new HttpServerCodec());//设置解码器
                         ch.pipeline().addLast("aggregator",new HttpObjectAggregator(65536));//聚合器，使用websocket会用到
                         ch.pipeline().addLast("http-chunked",new ChunkedWriteHandler());//用于大数据的分区传输
-                        ch.pipeline().addLast("login",new LoggingHandler());
+                        ch.pipeline().addLast(new LoginHandler());
                         ch.pipeline().addLast("handler",new NioWebSocketHandler());//自定义的业务handler
                     }
                 });
